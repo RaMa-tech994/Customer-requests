@@ -158,7 +158,7 @@ function App() {
       <main className="main-content" id="top">
         <header className="topbar"><div className="breadcrumb">Darbo erdvė <span>/</span> <strong>Užklausos</strong></div><div className="topbar-right"><span className="user-email">{session.user.email}</span><button className="sign-out-button" onClick={() => supabase.auth.signOut()}>Atsijungti</button></div></header>
         <section className="page-content">
-          <div className="page-heading"><div><div className="eyebrow">KLIENTŲ APTARNAVIMAS</div><h1>Užklausos</h1><p className="subtitle">Peržiūrėkite ir valdykite savo projektų klientų užklausas.</p></div><button className="primary-button" onClick={() => { if (projects.length === 0) setDataError('Projektų dar nėra. Paprašykite administratoriaus sukurti projektą.'); else setShowRequestForm(true) }} disabled={loading}><span>＋</span> Nauja užklausa</button></div>
+          <div className="page-heading"><div><div className="eyebrow">KLIENTŲ APTARNAVIMAS</div><h1>Užklausos</h1></div><button className="primary-button" onClick={() => { if (projects.length === 0) setDataError('Projektų dar nėra. Paprašykite administratoriaus sukurti projektą.'); else setShowRequestForm(true) }} disabled={loading}><span>＋</span> Nauja užklausa</button></div>
 
           {dataError && <div className="data-error" role="alert">{dataError}<button onClick={() => setDataError('')} aria-label="Uždaryti pranešimą">×</button></div>}
 
@@ -170,7 +170,7 @@ function App() {
           </div>
 
           <section className="requests-panel">
-            <div className="panel-heading"><div><h2>Visos užklausos</h2><p>Duomenys įkeliami iš Supabase pagal prisijungusio naudotojo RLS taisykles.</p></div>{isAdmin && <button className="export-button" onClick={() => setShowProjectForm(true)}>＋ <span>Naujas projektas</span></button>}</div>
+            <div className="panel-heading"><div><h2>Mano užklausos</h2></div>{isAdmin && <button className="export-button" onClick={() => setShowProjectForm(true)}>＋ <span>Naujas projektas</span></button>}</div>
             <div className="table-toolbar"><label className="search-box"><span>⌕</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Ieškoti užklausų..." /></label><label className="project-filter"><span>Projektas:</span><select value={selectedProject} onChange={(event) => setSelectedProject(event.target.value)}><option value="all">Visi projektai</option>{projects.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select><b>⌄</b></label></div>
             <div className="table-scroll"><table><thead><tr><th>UŽKLAUSA</th><th>PROJEKTAS</th><th>DATA</th><th>PRIORITETAS</th></tr></thead><tbody>
               {loading && <tr><td className="empty-state" colSpan="4">Kraunami duomenys…</td></tr>}

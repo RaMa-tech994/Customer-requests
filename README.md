@@ -1,61 +1,83 @@
 # Customer Requests
 
-Web aplikacija, skirta klientų užklausoms registruoti ir administruoti.
+React + Vite aplikacija klientų užklausoms registruoti ir administruoti. Duomenys ir naudotojų paskyros saugomi Supabase.
 
-## Projekto tikslas
+## Funkcijos
 
-Naudotojai gali prisijungti prie sistemos ir kurti konkretiems projektams skirtas pagalbos užklausas. Kiekvienas naudotojas turi matyti tik jam priklausančius duomenis. Apie svarbius įvykius siunčiami el. pašto pranešimai.
+- Registracija ir prisijungimas el. paštu bei slaptažodžiu.
+- Projektų kūrimas administratoriaus paskyra.
+- Visi prisijungę naudotojai gali matyti projektus ir jiems kurti užklausas.
+- Naudotojai mato tik savo užklausas; prieigą riboja Supabase RLS.
+- Užklausos prioritetas: `High` arba `Normal`.
 
-## Numatyta technologijų architektūra
+## Technologijos
 
-- **Frontend:** React + Vite (JavaScript)
-- **Autentifikacija ir duomenų bazė:** Supabase Auth, Supabase Database ir Row Level Security (RLS)
-- **Versijų kontrolė:** GitHub
-- **Diegimas:** Vercel
-- **Automatizavimas ir el. paštas:** Supabase Database Webhook → Zapier → Gmail
-- **Dokumentacija ir projekto valdymas:** Notion
+- Frontend: React, Vite ir JavaScript.
+- Autentifikacija ir duomenų bazė: Supabase Auth, PostgreSQL ir RLS.
+- Lint: Oxlint.
+- Diegimas: Vercel (dar nesukonfigūruota).
+- El. pašto automatizavimas: numatytas Supabase Database Webhook → Zapier → Gmail srautas; ši integracija dar neaprašyta aplikacijos konfigūracijoje.
 
-## Pagrindinės funkcijos
+## Supabase duomenų modelis
 
-- Naudotojo registracija ir prisijungimas.
-- Projektų ir užklausų valdymas.
-- Užklausos prioriteto pasirinkimas: **High** arba **Normal**.
-- Prieigos prie duomenų ribojimas pagal naudotoją, naudojant Supabase RLS.
-- Naujos užklausos įrašymo į duomenų bazę įvykis perduodamas Zapier.
-- Aukšto prioriteto užklausos el. laiško temoje pažymimos „SKUBU“.
+| Lentelė | Stulpeliai | Paskirtis |
+| --- | --- | --- |
+| `projects` | `id` (uuid), `user_id` (uuid), `name` (text), `created_at` (timestamptz) | Projektas. `user_id` nurodo sukūrusį naudotoją. |
+| `requests` | `id` (uuid), `project_id` (uuid), `user_id` (uuid), `title` (text), `priority` (text), `created_at` (timestamptz) | Užklausa, susieta su projektu ir ją pateikusiu naudotoju. |
+| `user_roles` | `user_id` (uuid), `role` (`admin` arba `user`), `created_at` (timestamptz) | Naudotojo vaidmuo. |
 
-## Duomenų ir pranešimų srautas
+RLS taisyklės leidžia prisijungusiems naudotojams skaityti projektus, bet juos kurti gali tik `admin` vaidmenį turintys naudotojai. Užklausos skaitomos ir kuriamos pagal prisijungusio naudotojo `user_id`. Aplikacija datos lauką perskaito iš `created_at` arba `created-at`; įrašant naują eilutę datą turėtų užpildyti duomenų bazės numatytoji reikšmė.
 
-1. Naudotojas veikia React aplikacijoje.
-2. Aplikacija per supabase-js jungiasi prie Supabase naudodama viešą anon raktą.
-3. Supabase duomenų bazėje sukūrus naują užklausos įrašą, Database Webhook perduoda įvykį Zapier.
-4. Zapier patikrina įvykio tipą ir pagal prioritetą nukreipia į atitinkamą kelią.
-5. Aukšto prioriteto atveju Gmail laiško tema pradedama „SKUBU: “ ir papildoma užklausos pavadinimu.
+Admin vaidmuo saugomas `public.user_roles` lentelėje. Priskirti administratorių jau egzistuojančiai Supabase Auth paskyrai galima SQL Editor:
 
-Webhook įvykį siunčia Supabase serveris. Zapier šiame sraute neturi tiesiogiai jungtis prie Supabase su duomenų bazės raktais.
+```sql
+insert into public.user_roles (user_id, role)
+select id, 'admin'
+from auth.users
+where lower(email) = lower('ADMIN_PASKYROS_EL_PASTAS')
+on conflict (user_id)
+do update set role = excluded.role;
+```
 
-## Projekto ribos
+Vaidmenį priskirkite tik patikimai paskyrai. `service_role` / secret rakto nedėkite į frontend aplikaciją.
 
-Į pradinę projekto apimtį neįtraukiama:
-- mokėjimai;
-- realaus laiko funkcionalumas;
-- failų įkėlimas;
-- Supabase Edge Functions;
-- TypeScript;
-- atskira mobilioji aplikacija.
+## Paleidimas vietoje
 
-## Duomenų modelio pastaba
+Reikalingas Node.js ir npm. Komandas vykdykite projekto aplanke `mano-projektas`:
 
-Projekto apimties aprašyme lentelės vadinamos Projects ir Requests, o detalesniame duomenų modelio apraše naudojami pavadinimai lists ir items bei ryšio laukas list_id. Galutinius lentelių pavadinimus reikia patvirtinti prieš kuriant Supabase schemą.
+```powershell
+cd .\mano-projektas
+npm install
+Copy-Item .env.example .env.local
+```
 
-## Darbo pradžia
+Užpildykite `.env.local` reikšmėmis iš savo Supabase projekto **Connect** lango arba **Project Settings → API Keys**:
 
-Ši repositorija šiuo metu yra pradinė projekto dokumentacijos vieta. React + Vite aplikacijos kodas, Supabase schema ir diegimo konfigūracija bus pridėti vėlesniuose etapuose.
+```env
+VITE_SUPABASE_URL=https://jusu-projekto-id.supabase.co
+VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_jusu_raktas
+```
 
-Kai aplikacijos kodas bus sukurtas, čia bus papildytos tikslios vietinio paleidimo, aplinkos kintamųjų ir diegimo instrukcijos.
+`VITE_SUPABASE_ANON_KEY` palaikomas senesniam anon raktui, tačiau naujam projektui naudokite publishable raktą. `.env.local` yra ignoruojamas Git.
+
+Paleiskite kūrimo serverį:
+
+```powershell
+npm.cmd run dev
+```
+
+Kitose terminalo aplinkose galima naudoti `npm run dev`. Atidarykite Vite parodytą `Local` adresą; jei prievadas `5173` užimtas, Vite gali naudoti, pavyzdžiui, `5174`.
+
+Supabase **Authentication → Sign In / Providers → Email** skiltyje turi būti įjungtas el. pašto prisijungimo būdas. Jei norite, kad registruojantis nereikėtų patvirtinti el. pašto, išjunkite **Confirm email**. Vietinius adresus pridėkite prie Auth URL konfigūracijos, jei Supabase jų prašo.
+
+## Patikros komandos
+
+```powershell
+npm.cmd run build
+npm.cmd run lint
+```
 
 ## Projekto nuorodos
 
 - GitHub: https://github.com/RaMa-tech994/Customer-requests
 - Notion projekto planas: https://app.notion.com/p/415452a5d98881528f75ed1ae784b3d8
-- Vercel: dar nesukonfigūruota
